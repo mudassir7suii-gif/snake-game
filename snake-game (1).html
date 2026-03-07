@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake Game - Retro Arcade</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@400;700;900&display=swap');
+
+        body {
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1a3e 50%, #0f1e3d 100%);
+            font-family: 'Orbitron', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                repeating-linear-gradient(
+                    0deg,
+                    rgba(0, 255, 150, 0.03) 0px,
+                    rgba(0, 255, 150, 0.03) 1px,
+                    transparent 1px,
+                    transparent 2px
+                );
+            pointer-events: none;
+            animation: scanlines 8s linear infinite;
+            z-index: 1;
+        }
+
+        @keyframes scanlines {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(10px); }
+        }
+
+        .container {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+        }
+
+        h1 {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 2.5rem;
+            color: #00ff96;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px #00ff96, 0 0 20px #00ff96, 0 0 40px #00ff00;
+            animation: glow-pulse 2s ease-in-out infinite;
+            letter-spacing: 2px;
+        }
+
+        @keyframes glow-pulse {
+            0%, 100% { text-shadow: 0 0 10px #00ff96, 0 0 20px #00ff96; }
+            50% { text-shadow: 0 0 20px #00ff96, 0 0 40px #00ff96, 0 0 60px #00ff00; }
+        }
+
+        .game-wrapper {
+            background: linear-gradient(135deg, #1a2f4d 0%, #0d1b2a 100%);
+            border: 4px solid #00ff96;
+            box-shadow: 
+                0 0 20px rgba(0, 255, 150, 0.5),
+                inset 0 0 20px rgba(0, 255, 150, 0.1),
+                0 0 40px rgba(0, 100, 255, 0.3);
+            padding: 20px;
+            border-radius: 2px;
+            max-width: 800px;
+            margin-bottom: 30px;
+            display: none;
+        }
+
+        .game-wrapper.active {
+            display: block;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 0.9rem;
+            color: #00ff96;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .stat {
+            background: rgba(0, 255, 150, 0.1);
+            padding: 10px 20px;
+            border: 2px solid #00ff96;
+            border-radius: 4px;
+            min-width: 120px;
+        }
+
+        .stat-label {
+            display: block;
+            font-size: 0.7rem;
+            color: #00ccff;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-value {
+            display: block;
+            font-size: 1.2rem;
+            color: #00ff96;
+        }
+
+        canvas {
+            background: #0a0e27;
+            border: 2px solid #00ff96;
+            display: block;
+            margin: 0 auto;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            cursor: none;
+            width: 100%;
+            max-width: 600px;
+            height: auto;
+        }
+
+        .controls {
+            margin-top: 20px;
+            font-family: 'Press Start 2P', cursive;
+            color: #00ccff;
+            font-size: 0.8rem;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 0.8rem;
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #00ff96, #00ccff);
+            color: #0a0e27;
+            border: 2px solid #00ff96;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 15px rgba(0, 255, 150, 0.5);
+            border-radius: 4px;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(0, 255, 150, 0.8), inset 0 0 10px rgba(255, 255, 255, 0.3);
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .instructions {
+            background: rgba(0, 255, 150, 0.1);
+            border: 2px solid #00ccff;
+            padding: 20px;
+            border-radius: 4px;
+            margin-top: 20px;
+            color: #00ccff;
+            font-size: 0.85rem;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.6;
+            display: none;
+        }
+
+        .instructions h3 {
+            color: #00ff96;
+            margin-bottom: 10px;
+            font-size: 1rem;
+        }
+
+        .icon {
+            display: inline-block;
+            margin-right: 8px;
+            font-size: 1.2em;
+        }
+
+        /* START SCREEN */
+        .start-screen {
+            display: flex;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1a3e 50%, #0f1e3d 100%);
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+        }
+
+        .start-screen.hidden {
+            display: none;
+        }
+
+        .start-screen-content {
+            text-align: center;
+            background: linear-gradient(135deg, #1a2f4d 0%, #0d1b2a 100%);
+            border: 4px solid #00ff96;
+            padding: 80px 60px;
+            border-radius: 8px;
+            box-shadow: 
+                0 0 40px rgba(0, 255, 150, 0.5),
+                inset 0 0 30px rgba(0, 255, 150, 0.1),
+                0 0 80px rgba(0, 100, 255, 0.3);
+            animation: slideIn 0.8s ease-out;
+            max-width: 600px;
+            width: 90%;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: scale(0.6) translateY(-100px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .start-screen-content h1 {
+            font-size: 4rem;
+            margin-bottom: 30px;
+            animation: bounce 0.6s ease-in-out infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .start-screen-content p {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.3rem;
+            margin: 20px 0;
+            color: #00ccff;
+            letter-spacing: 2px;
+        }
+
+        .start-features {
+            margin: 40px 0;
+            color: #00ff96;
+            font-size: 1.1rem;
+            line-height: 2.5;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .start-features div {
+            animation: fadeIn 0.8s ease-out forwards;
+            opacity: 0;
+        }
+
+        .start-features div:nth-child(1) { animation-delay: 0.2s; }
+        .start-features div:nth-child(2) { animation-delay: 0.4s; }
+        .start-features div:nth-child(3) { animation-delay: 0.6s; }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        #startScreenBtn {
+            margin-top: 50px;
+            padding: 25px 60px;
+            font-size: 1.5rem;
+            letter-spacing: 2px;
+            background: linear-gradient(135deg, #00ff96, #00ccff);
+            animation: pulse-button 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse-button {
+            0%, 100% {
+                box-shadow: 0 0 15px rgba(0, 255, 150, 0.5);
+                transform: scale(1);
+            }
+            50% {
+                box-shadow: 0 0 40px rgba(0, 255, 150, 0.9);
+                transform: scale(1.02);
+            }
+        }
+
+        /* GAME OVER SCREEN */
+        .game-over-screen {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(10, 14, 39, 0.98);
+            border: 4px solid #ff0066;
+            padding: 60px 50px;
+            border-radius: 8px;
+            text-align: center;
+            z-index: 100;
+            box-shadow: 0 0 40px rgba(255, 0, 102, 0.6);
+            animation: shake 0.4s ease-in-out;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translate(-50%, -50%) translateX(0); }
+            25% { transform: translate(-50%, -50%) translateX(-15px); }
+            75% { transform: translate(-50%, -50%) translateX(15px); }
+        }
+
+        .game-over-screen.active {
+            display: block;
+        }
+
+        .game-over-screen h2 {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 2.5rem;
+            color: #ff0066;
+            margin-bottom: 30px;
+            text-shadow: 0 0 20px #ff0066;
+            animation: glow-pulse 1.5s ease-in-out infinite;
+        }
+
+        .game-over-screen p {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 1.2rem;
+            color: #00ff96;
+            margin: 20px 0;
+            line-height: 1.8;
+        }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 99;
+        }
+
+        .overlay.active {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8rem;
+            }
+
+            .start-screen-content {
+                padding: 50px 30px;
+            }
+
+            .start-screen-content h1 {
+                font-size: 2.5rem;
+            }
+
+            .start-features {
+                font-size: 0.9rem;
+            }
+
+            canvas {
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="overlay" id="overlay"></div>
+    
+    <div class="start-screen" id="startScreen">
+        <div class="start-screen-content">
+            <h1>🐍 SNAKE 🐍</h1>
+            <p>RETRO ARCADE GAME</p>
+            <div class="start-features">
+                <div>🟢 EAT APPLES TO GROW</div>
+                <div>💣 AVOID BOMBS!</div>
+                <div>📈 GET FASTER & HARDER</div>
+            </div>
+            <button id="startScreenBtn">▶ PRESS TO PLAY</button>
+            <p style="font-size: 0.9rem; margin-top: 30px; color: #00ccff;">Then use WASD or ARROW KEYS to move</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="game-wrapper" id="gameWrapper">
+            <h1>🐍 SNAKE 🐍</h1>
+            
+            <div class="stats">
+                <div class="stat">
+                    <span class="stat-label">Score</span>
+                    <span class="stat-value" id="score">0</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Level</span>
+                    <span class="stat-value" id="level">1</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Apples</span>
+                    <span class="stat-value" id="apples">0</span>
+                </div>
+            </div>
+
+            <canvas id="gameCanvas" width="600" height="600"></canvas>
+
+            <div class="controls">
+                <div>Use ARROW KEYS or WASD to move</div>
+                <div style="margin-top: 10px; color: #ff0066;">⚠ AVOID BOMBS ⚠</div>
+            </div>
+
+            <div class="button-group">
+                <button id="pauseBtn">⏸ PAUSE</button>
+                <button id="resetBtn">⟲ RESET</button>
+            </div>
+        </div>
+
+        <div class="instructions" id="instructions">
+            <h3>How to Play</h3>
+            <div><span class="icon">🟢</span>Eat red apples to grow and earn points</div>
+            <div><span class="icon">💣</span>Avoid bombs - one hit = game over!</div>
+            <div><span class="icon">📈</span>Speed increases every 5 apples</div>
+            <div style="margin-top: 10px; color: #00ff96;">Survive as long as you can!</div>
+        </div>
+    </div>
+
+    <div class="game-over-screen" id="gameOverScreen">
+        <h2>💥 GAME OVER 💥</h2>
+        <p id="finalScore">Score: 0</p>
+        <p id="finalApples">Apples Eaten: 0</p>
+        <p id="finalLevel">Level Reached: 1</p>
+        <button id="playAgainBtn" style="margin-top: 30px;">▶ PLAY AGAIN</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Game variables
+        const gridSize = 20;
+        const tileCount = canvas.width / gridSize;
+        
+        let snake = [{ x: 10, y: 10 }];
+        let direction = { x: 1, y: 0 };
+        let nextDirection = { x: 1, y: 0 };
+        let apple = { x: 15, y: 15 };
+        let bombs = [];
+        let score = 0;
+        let applesEaten = 0;
+        let level = 1;
+        let gameRunning = false;
+        let gamePaused = false;
+        let gameSpeed = 100;
+        let lastMoveTime = 0;
+        
+        const scoreEl = document.getElementById('score');
+        const levelEl = document.getElementById('level');
+        const applesEl = document.getElementById('apples');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const overlay = document.getElementById('overlay');
+        const playAgainBtn = document.getElementById('playAgainBtn');
+        const finalScoreEl = document.getElementById('finalScore');
+        const finalApplesEl = document.getElementById('finalApples');
+        const finalLevelEl = document.getElementById('finalLevel');
+        const startScreen = document.getElementById('startScreen');
+        const startScreenBtn = document.getElementById('startScreenBtn');
+        const gameWrapper = document.getElementById('gameWrapper');
+        const instructions = document.getElementById('instructions');
+
+        // Event listeners
+        document.addEventListener('keydown', handleKeyPress);
+        pauseBtn.addEventListener('click', togglePause);
+        resetBtn.addEventListener('click', resetGame);
+        startScreenBtn.addEventListener('click', startGameFromScreen);
+        playAgainBtn.addEventListener('click', playAgain);
+
+        function handleKeyPress(e) {
+            if (!gameRunning || gamePaused) return;
+
+            const key = e.key.toLowerCase();
+            
+            if (key === 'arrowup' || key === 'w') {
+                e.preventDefault();
+                if (direction.y === 0) nextDirection = { x: 0, y: -1 };
+            } else if (key === 'arrowdown' || key === 's') {
+                e.preventDefault();
+                if (direction.y === 0) nextDirection = { x: 0, y: 1 };
+            } else if (key === 'arrowleft' || key === 'a') {
+                e.preventDefault();
+                if (direction.x === 0) nextDirection = { x: -1, y: 0 };
+            } else if (key === 'arrowright' || key === 'd') {
+                e.preventDefault();
+                if (direction.x === 0) nextDirection = { x: 1, y: 0 };
+            }
+        }
+
+        function startGameFromScreen() {
+            startScreen.classList.add('hidden');
+            gameWrapper.classList.add('active');
+            instructions.style.display = 'block';
+            startGame();
+        }
+
+        function startGame() {
+            if (!gameRunning) {
+                gameRunning = true;
+                gamePaused = false;
+                pauseBtn.textContent = '⏸ PAUSE';
+                lastMoveTime = Date.now();
+                gameLoop();
+            }
+        }
+
+        function togglePause() {
+            if (gameRunning) {
+                gamePaused = !gamePaused;
+                pauseBtn.textContent = gamePaused ? '▶ RESUME' : '⏸ PAUSE';
+                if (!gamePaused) {
+                    lastMoveTime = Date.now();
+                    gameLoop();
+                }
+            }
+        }
+
+        function resetGame() {
+            snake = [{ x: 10, y: 10 }];
+            direction = { x: 1, y: 0 };
+            nextDirection = { x: 1, y: 0 };
+            apple = { x: 15, y: 15 };
+            bombs = [];
+            score = 0;
+            applesEaten = 0;
+            level = 1;
+            gameSpeed = 100;
+            gameRunning = false;
+            gamePaused = false;
+            lastMoveTime = 0;
+            
+            pauseBtn.textContent = '⏸ PAUSE';
+            gameOverScreen.classList.remove('active');
+            overlay.classList.remove('active');
+            startScreen.classList.remove('hidden');
+            gameWrapper.classList.remove('active');
+            instructions.style.display = 'none';
+            
+            updateUI();
+            draw();
+        }
+
+        function playAgain() {
+            gameOverScreen.classList.remove('active');
+            overlay.classList.remove('active');
+            resetGame();
+            startScreen.classList.remove('hidden');
+        }
+
+        function spawnBomb() {
+            let x, y, collision;
+            do {
+                collision = false;
+                x = Math.floor(Math.random() * tileCount);
+                y = Math.floor(Math.random() * tileCount);
+                
+                if ((x === apple.x && y === apple.y) ||
+                    snake.some(seg => seg.x === x && seg.y === y)) {
+                    collision = true;
+                }
+            } while (collision);
+            
+            bombs.push({ x, y });
+        }
+
+        function spawnApple() {
+            let x, y, collision;
+            do {
+                collision = false;
+                x = Math.floor(Math.random() * tileCount);
+                y = Math.floor(Math.random() * tileCount);
+                
+                if (snake.some(seg => seg.x === x && seg.y === y) ||
+                    bombs.some(bomb => bomb.x === x && bomb.y === y)) {
+                    collision = true;
+                }
+            } while (collision);
+            
+            apple = { x, y };
+        }
+
+        function gameLoop() {
+            if (!gameRunning || gamePaused) return;
+
+            const now = Date.now();
+            if (now - lastMoveTime > gameSpeed) {
+                update();
+                lastMoveTime = now;
+            }
+
+            draw();
+            
+            if (gameRunning && !gamePaused) {
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        function update() {
+            direction = nextDirection;
+            
+            const head = { x: snake[0].x + direction.x, y: snake[0].y + direction.y };
+            
+            // Check wall collision
+            if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
+                endGame();
+                return;
+            }
+            
+            // Check self collision
+            if (snake.some(seg => seg.x === head.x && seg.y === head.y)) {
+                endGame();
+                return;
+            }
+            
+            // Check bomb collision
+            if (bombs.some(bomb => bomb.x === head.x && bomb.y === head.y)) {
+                endGame();
+                return;
+            }
+            
+            snake.unshift(head);
+            
+            // Check apple collision
+            if (head.x === apple.x && head.y === apple.y) {
+                score += 100;
+                applesEaten++;
+                updateUI();
+                
+                // Increase level every 5 apples
+                if (applesEaten % 5 === 0) {
+                    level++;
+                    gameSpeed = Math.max(50, gameSpeed - 5);
+                    updateUI();
+                }
+                
+                // Spawn new apple
+                spawnApple();
+                
+                // Randomly spawn bombs
+                if (Math.random() < 0.4) {
+                    spawnBomb();
+                }
+            } else {
+                snake.pop();
+            }
+        }
+
+        function endGame() {
+            gameRunning = false;
+            finalScoreEl.textContent = `Score: ${score}`;
+            finalApplesEl.textContent = `Apples Eaten: ${applesEaten}`;
+            finalLevelEl.textContent = `Level Reached: ${level}`;
+            gameOverScreen.classList.add('active');
+            overlay.classList.add('active');
+        }
+
+        function updateUI() {
+            scoreEl.textContent = score;
+            levelEl.textContent = level;
+            applesEl.textContent = applesEaten;
+        }
+
+        function draw() {
+            // Clear canvas
+            ctx.fillStyle = '#0a0e27';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw grid
+            ctx.strokeStyle = 'rgba(0, 255, 150, 0.1)';
+            ctx.lineWidth = 0.5;
+            for (let i = 0; i <= tileCount; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * gridSize, 0);
+                ctx.lineTo(i * gridSize, canvas.height);
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.moveTo(0, i * gridSize);
+                ctx.lineTo(canvas.width, i * gridSize);
+                ctx.stroke();
+            }
+
+            // Draw snake
+            snake.forEach((segment, index) => {
+                if (index === 0) {
+                    // Head
+                    ctx.fillStyle = '#00ff96';
+                    ctx.shadowColor = 'rgba(0, 255, 150, 0.8)';
+                    ctx.shadowBlur = 10;
+                } else {
+                    // Body
+                    ctx.fillStyle = '#00cc7a';
+                    ctx.shadowColor = 'rgba(0, 204, 122, 0.5)';
+                    ctx.shadowBlur = 5;
+                }
+                
+                ctx.fillRect(
+                    segment.x * gridSize + 1,
+                    segment.y * gridSize + 1,
+                    gridSize - 2,
+                    gridSize - 2
+                );
+            });
+            ctx.shadowColor = 'transparent';
+
+            // Draw apple with pulsing animation
+            const appleSize = gridSize / 2.2 + Math.sin(Date.now() / 200) * 2;
+            ctx.fillStyle = '#ff3333';
+            ctx.shadowColor = 'rgba(255, 51, 51, 0.8)';
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.arc(
+                apple.x * gridSize + gridSize / 2,
+                apple.y * gridSize + gridSize / 2,
+                appleSize,
+                0,
+                Math.PI * 2
+            );
+            ctx.fill();
+            ctx.shadowColor = 'transparent';
+
+            // Draw bombs with animation
+            bombs.forEach((bomb, bombIndex) => {
+                ctx.fillStyle = '#333333';
+                ctx.shadowColor = 'rgba(255, 100, 0, 0.6)';
+                ctx.shadowBlur = 8;
+                
+                // Bomb body
+                ctx.beginPath();
+                ctx.arc(
+                    bomb.x * gridSize + gridSize / 2,
+                    bomb.y * gridSize + gridSize / 2,
+                    gridSize / 2 - 2,
+                    0,
+                    Math.PI * 2
+                );
+                ctx.fill();
+                
+                // Fuse
+                ctx.strokeStyle = '#ff6400';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                const fuseWave = Math.sin(Date.now() / 100 + bombIndex) * 3;
+                ctx.moveTo(bomb.x * gridSize + gridSize / 2, bomb.y * gridSize + 2);
+                ctx.quadraticCurveTo(
+                    bomb.x * gridSize + gridSize / 2 + 3 + fuseWave,
+                    bomb.y * gridSize + gridSize / 2 - 3,
+                    bomb.x * gridSize + gridSize / 2 + 2,
+                    bomb.y * gridSize + gridSize / 2 - 8
+                );
+                ctx.stroke();
+                
+                ctx.shadowColor = 'transparent';
+            });
+
+            // Draw pause overlay
+            if (gamePaused) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.fillStyle = '#00ff96';
+                ctx.font = 'bold 30px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('PAUSED', canvas.width / 2, canvas.height / 2);
+            }
+        }
+
+        // Initial draw
+        draw();
+    </script>
+</body>
+</html>
